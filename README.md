@@ -12,7 +12,7 @@
 
 ### Contributing
 
-提交代码前请阅读[contribution guidelines](https://github.com/opencv/opencv/wiki/How_to_contribute)。
+欢迎各种大佬提交宝贵代码OTZ__
 
 ### LICENSE
 
