@@ -20,7 +20,9 @@ async def websocket_handler(websocket, path):
                 raise ModuleNotFoundError()
         else:
             raise ModuleNotFoundError()
-        await class_name.execute(websocket)
+        obj = class_name()
+        func = getattr(obj, path[1])
+        await func(websocket)
     except ModuleNotFoundError:
         await websocket.send(Response.get(12))
 

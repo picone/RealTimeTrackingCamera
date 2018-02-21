@@ -28,3 +28,7 @@ class ImageUtils:
         :returns: (阈值，类型与src相同)
         """
         return cv2.threshold(src, threshold, maxval, threshold_type)
+
+    @staticmethod
+    def vector2array(ndarray):
+        pass

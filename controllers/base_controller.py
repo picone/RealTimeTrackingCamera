@@ -3,6 +3,5 @@
 
 class BaseController:
 
-    @classmethod
-    def execute(cls, websocket):
+    def execute(self, websocket):
         pass

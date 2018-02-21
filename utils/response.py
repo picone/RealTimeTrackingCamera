@@ -17,7 +17,7 @@ class Response:
         获取消息响应json
         :type code: int
         :param code: 消息代码
-        :type data: map | None
+        :type data: Dict | None
         :param data: 附加数据
         :type msg: string
         :param msg: 附加消息
