@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+message FrameResponse {
+  int32 code = 1;
+  enum Type {
+    VIDEO = 0;//视频帧
+    OUTLINE = 1;//轮廓帧
+  }
+  Type type = 2;
+  bytes frame = 3;
+}

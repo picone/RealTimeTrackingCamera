@@ -7,14 +7,14 @@ from utils.moving_target_outline import MovingTargetOutline
 class TestMovingTargetOutline(unittest.TestCase):
 
     def setUp(self):
-        cap = cv2.VideoCapture("demo.avi")
+        cap = cv2.VideoCapture(0)
         if cap is None or not cap.isOpened():
-            self.fail("demo.avi不存在")
+            self.fail("启动摄像头失败")
         self.__cap = cap
 
     def test_get_max_difference_frame(self):
         outline = MovingTargetOutline()
-        while True:
+        for i in range(1, 5):
             ret, img = self.__cap.read()
             if not ret:
                 break

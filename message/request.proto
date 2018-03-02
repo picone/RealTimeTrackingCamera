@@ -1,0 +1,5 @@
+syntax = "proto3";
+
+message CommandRequest {
+  int32 code = 1;
+}

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import cv2
+import numpy
 
 
 class ImageUtils:
@@ -30,5 +31,15 @@ class ImageUtils:
         return cv2.threshold(src, threshold, maxval, threshold_type)
 
     @staticmethod
-    def vector2array(ndarray):
-        pass
+    def img2bytes(img):
+        """
+        :type img: numpy.ndarray
+        :param img: img图像
+        :rtype: bytearray | None
+        :return: 字节流
+        """
+        ret, img = cv2.imencode(".jpg", img)
+        if ret:
+            return numpy.array(img).tobytes()
+        else:
+            return None
