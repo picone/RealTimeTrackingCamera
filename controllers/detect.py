@@ -29,11 +29,14 @@ class Detect(BaseController):
             asyncio.ensure_future(self._wait_stop(websocket)),
         ])
         # 直到收到停止命令
-        max_difference_frame = self.__outline.get_max_difference_frame()
+        background, max_difference_frame = self.__outline.get_max_difference_frame()
         response_frame = response_pb2.FrameResponse()
         response_frame.code = 1
         response_frame.type = response_pb2.FrameResponse.OUTLINE
         response_frame.frame = ImageUtils.img2bytes(max_difference_frame)
+        await websocket.send(response_frame.SerializeToString())
+        response_frame.type = response_pb2.FrameResponse.BACKGROUND
+        response_frame.frame = ImageUtils.img2bytes(background)
         await websocket.send(response_frame.SerializeToString())
 
     async def _capture(self, websocket):

@@ -36,7 +36,7 @@ class MovingTargetOutline:
     def get_max_difference_frame(self):
         """
         使用三帧差分法
-        :rtype: numpy.ndarray
+        :rtype: numpy.ndarray, numpy.ndarray
         :return: 差分帧像素最多的一帧
         """
         frame_len = len(self.__video_frames)
@@ -53,17 +53,21 @@ class MovingTargetOutline:
             # 对差分帧每帧之间与运算
             max_none_zero = 0
             max_difference_frame = None
-            for none_zero, and_frame in pool.imap_unordered(
+            max_difference_frame_index = None
+            for none_zero, frame_index, and_frame in pool.imap_unordered(
                 self._get_and_frame,
                 map(
-                    lambda x: (result_difference_frame[x], result_difference_frame[x + 1]),
+                    lambda x: (x, result_difference_frame[x], x + 1, result_difference_frame[x + 1]),
                     range(0, len(result_difference_frame) - 1)
                 )
             ):
                 if none_zero > max_none_zero:
                     max_none_zero = none_zero
                     max_difference_frame = and_frame
-        return max_difference_frame
+                    max_difference_frame_index = frame_index + 1
+            if max_difference_frame_index:
+                return self.__video_frames[max_difference_frame_index], max_difference_frame
+        return None, None
 
     @staticmethod
     def _get_difference_frame(pre_frame, next_frame):
@@ -83,9 +87,9 @@ class MovingTargetOutline:
     def _get_and_frame(args):
         """
         帧进行与运算
-        :param tuple args: args[0]前一帧，args[1]后一帧
+        :param tuple args: args[0]前一帧下标, args[1]前一帧, args[2]后一帧下标, args[3]后一帧
         :rtype: (int, numpy.ndarray)
         :return: (非0像素个数，帧与运算结果)
         """
-        img = cv2.bitwise_and(args[0], args[1])
-        return cv2.countNonZero(img), img
+        img = cv2.bitwise_and(args[1], args[3])
+        return cv2.countNonZero(img), args[0], img

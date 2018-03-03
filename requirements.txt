@@ -1,3 +1,8 @@
+APScheduler==3.5.1
 numpy==1.14.0
 opencv-python==3.4.0.12
+protobuf==3.5.1
+pytz==2018.3
+six==1.11.0
+tzlocal==1.5.1
 websockets==4.0.1
