@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import websockets
-from utils.response import Response
 
 
 async def websocket_handler(websocket, path):
@@ -24,7 +23,7 @@ async def websocket_handler(websocket, path):
         func = getattr(obj, path[1])
         await func(websocket)
     except ModuleNotFoundError:
-        await websocket.send(Response.get(12))
+        print("RouterNotFound")
 
 start_server = websockets.serve(websocket_handler, "localhost", 8080)
 

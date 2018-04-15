@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import cv2
 import multiprocessing
+
 from utils.image_utils import ImageUtils
 
 
@@ -42,7 +43,7 @@ class MovingTargetOutline:
         frame_len = len(self.__video_frames)
         # 帧数大于1才能差分
         if frame_len <= 1:
-            return False
+            return None, None
         # 每帧之间求差分,结果要求按顺序
         # 多进程使用cvtColor会崩溃？？？
         result_difference_frame = []
@@ -79,7 +80,9 @@ class MovingTargetOutline:
         :returns: 差分帧
         """
         img = cv2.absdiff(pre_frame, next_frame)
+        # 灰度处理后再高斯滤波，降低计算量
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.GaussianBlur(img, (5, 5), 2.5)
         _, img = ImageUtils.binary(img, threshold_type=cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
         return img
 
