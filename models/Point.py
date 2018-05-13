@@ -45,6 +45,6 @@ class Point(object):
         return self.__x < 0 or self.__y < 0
 
     def __str__(self):
-        return "x:%f,y%s" % (self.__x, self.__y)
+        return "x:%f,y:%s" % (self.__x, self.__y)
 
     __repr__ = __str__

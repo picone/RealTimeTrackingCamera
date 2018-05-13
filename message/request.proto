@@ -3,4 +3,5 @@ syntax = "proto3";
 message CommandRequest {
   int32 code = 1;
   bytes frame = 16;
+  bytes mask  = 17;
 }

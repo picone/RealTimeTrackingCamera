@@ -9,4 +9,7 @@ message FrameResponse {
   }
   Type type = 2;
   bytes frame = 3;
+  float position_x = 16;//物体横坐标
+  float position_y = 17;//物体纵坐标
+  int32 points_count = 18;//匹配特征点数
 }

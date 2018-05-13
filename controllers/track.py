@@ -12,18 +12,19 @@ from websockets import ConnectionClosed
 
 
 class Track(BaseController):
-
     def __init__(self):
         self.__capture = False
         self.__target = None
         self.__tracker = None
+        self.__mask = None
 
     async def execute(self, websocket):
         response = await websocket.recv()
         command = request_pb2.CommandRequest()
         command.ParseFromString(response)
         self.__target = ImageUtils.bytes2img(command.frame)
-        self.__tracker = MovingTargetTrack(self.__target)
+        self.__mask = ImageUtils.bytes2img(command.mask)
+        self.__tracker = MovingTargetTrack(self.__target, self.__mask)
         if command.code == 2:
             self.__capture = True
             await asyncio.wait([
@@ -38,17 +39,21 @@ class Track(BaseController):
         while self.__capture:
             ret, img = Camera.get_frame()
             if ret:
-                old_position, new_position, contour = self.__tracker.track(img)
-                print(old_position, new_position)
+                old_position, new_position, points = self.__tracker.track(img)
+                response.position_x = new_position.x
+                response.position_y = new_position.y
+                response.points_count = len(points)
                 # 把轮廓绘制到帧上
-                if contour is not None:
-                    cv2.drawContours(img, [contour], 0, (255, 0, 0), 2)
+                if response.points_count > 0:
+                    ImageUtils.draw_points(img, points, 6, (0, 0, 255))
+                # 把质心绘制到帧上
+                ImageUtils.draw_points(img, [(int(new_position.x), int(new_position.y))], 6, (0, 255, 0))
                 response.frame = ImageUtils.img2bytes(img)
                 try:
                     await websocket.send(response.SerializeToString())
                 except ConnectionClosed:
                     self.__capture = False
-            await asyncio.sleep(1/10)
+            await asyncio.sleep(1 / 100)  # 要加个sleep，不然无法让其他协程运行
 
     async def _wait_stop(self, websocket):
         try:

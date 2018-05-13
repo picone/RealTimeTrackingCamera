@@ -54,15 +54,14 @@ class ImageUtils:
         return cv2.imdecode(buffer, cv2.IMREAD_COLOR)
 
     @staticmethod
-    def get_centroid(moments):
+    def get_centroid(points):
         """
         计算质心
-        :param moments:
+        :param points:
         :return Point:
         """
-        x = moments['m10'] / moments['m00']
-        y = moments['m01'] / moments['m00']
-        return Point(x, y)
+        points = numpy.array(points)
+        return Point(points[:, 0].mean(), points[:, 1].mean())
 
     @staticmethod
     def compare_hu_moments(hu_moments_a, hu_moments_b):
@@ -91,3 +90,109 @@ class ImageUtils:
         """
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, kernel_size)
         return cv2.morphologyEx(img, operation, kernel, iterations=iteration)
+
+    @staticmethod
+    def get_key_points(img, mask=None, hessian_threshold=100):
+        """
+        计算特征点
+        :param numpy.ndarray img:
+        :param numpy.ndarray mask:
+        :param int hessian_threshold:
+        :return list, list:
+        """
+        surf = cv2.xfeatures2d.SURF_create(hessian_threshold)
+        return surf.detectAndCompute(img, mask)
+
+    @staticmethod
+    def knn_match(descriptors_a, descriptors_b, good_distance=0.7):
+        """
+        匹配descriptors
+        :param list descriptors_a:
+        :param list descriptors_b:
+        :param int k: 至少匹配特征值
+        :param float good_distance: 距离阈值
+        :return list:
+        """
+        FLANN_INDEX_KDTREE = 1  # bug: flann enums are missing
+        index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=3)
+        search_params = dict(checks=100)
+        flann = cv2.FlannBasedMatcher(index_params, search_params)
+        try:
+            matches = flann.knnMatch(descriptors_a, descriptors_b, 2)
+        except Exception:
+            return ()
+        if good_distance > 0:
+            ret = []
+            for m, n in matches:
+                if m.distance < good_distance * n.distance:
+                    ret.append(m)
+            return ret
+        else:
+            return matches
+
+    @staticmethod
+    def get_matches_points(points, matches, idx=0):
+        """
+        获取匹配的点坐标
+        :param list points:
+        :param list(DMatch) matches:
+        :param int idx:
+        :return numpy.ndarray:
+        """
+        if idx == 0:
+            return numpy.float32([points[m.trainIdx].pt for m in matches])
+        else:
+            return numpy.float32([points[m.queryIdx].pt for m in matches])
+
+    @staticmethod
+    def draw_points(img, points, radius, color):
+        """
+        绘制一系列点在图片上
+        :param numpy.ndarray img:
+        :param list points:
+        :param int radius:
+        :param tuple color:
+        :return:
+        """
+        for point in points:
+            cv2.circle(img, point, radius, color, cv2.FILLED)
+
+    @staticmethod
+    def scale_image(img, max_width=0, max_height=0, keep_ratio=True, ratio=1):
+        """
+        缩放图像
+        :param numpy.ndarray img:
+        :param int max_width:
+        :param int max_height:
+        :param bool keep_ratio:
+        :param int ratio:
+        :return int:
+        """
+        if ratio != 1:
+            height, width, _ = img.shape
+            return ratio, cv2.resize(img, (int(width / ratio), int(height / ratio)))
+        elif keep_ratio and max_width > 0 and max_height > 0:
+            height, width, _ = img.shape
+            width_ratio = width / max_width
+            height_ratio = height / max_height
+            ratio = max(width_ratio, height_ratio)
+            return ratio, cv2.resize(img, (int(width / ratio), int(height / ratio)))
+        else:
+            return 0, cv2.resize(img, (max_width, max_height))
+
+    @staticmethod
+    def scale_points(points, ratio):
+        return numpy.array(points) * ratio
+
+    @staticmethod
+    def duplicate_points(points):
+        visited = dict()
+        ret = list()
+        for point in points:
+            x, y = int(point[0]), int(point[1])
+            if x not in visited:
+                visited[x] = {}
+            if y not in visited[x]:
+                visited[x][y] = 1
+                ret.append((x, y))
+        return ret

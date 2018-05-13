@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import cv2
 
+from models.Point import Point
+from utils.camera import Camera
 from utils.image_utils import ImageUtils
 
 
@@ -8,17 +10,21 @@ class MovingTargetTrack:
     """
     模板跟踪
     """
+    __match_points_ratio = 70
 
-    def __init__(self, target):
+    def __init__(self, target, mask):
         """
         构造函数
         :param numpy.ndArray target: 要跟踪的目标
         """
         self.__last_frame = None
-        _, self.__target = ImageUtils.binary(target, threshold_type=cv2.THRESH_OTSU)
-        self.__target_moments = cv2.moments(self.__target, True)
-        self.__target_hu_moments = cv2.HuMoments(self.__target_moments)
-        self.__position = ImageUtils.get_centroid(self.__target_moments)
+        # self.__target_ratio, self.__target = ImageUtils.scale_image(target, 1080, 720)
+        self.__target = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
+        _, self.__mask = ImageUtils.binary(mask, threshold_type=cv2.THRESH_OTSU)
+        self.__target_key_points, self.__target_descriptors = ImageUtils.get_key_points(self.__target, self.__mask)
+        self.__target_key_points_len = len(self.__target_key_points)
+        self.__position = Point()
+        print("特征点数:%d" % self.__target_key_points_len)
 
     def track(self, frame):
         """
@@ -27,46 +33,41 @@ class MovingTargetTrack:
         :param numpy.ndArray frame:
         :return (Point, Point, list|None): 新旧坐标
         """
+        # _, frame = ImageUtils.scale_image(frame, ratio=self.__target_ratio)
         if self.__last_frame is None:
             self.__last_frame = frame
-            return self.__position, self.__position, None
-        else:
-            img = cv2.absdiff(frame, self.__last_frame)
-            # 灰度处理后再高斯滤波，降低计算量
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            img = cv2.GaussianBlur(img, (5, 5), 2.5)
-            _, img = ImageUtils.binary(img, threshold_type=cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
-            _, contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            min_semblance = -1
-            min_moments = None
-            min_index = -1
-            # 计算特征的相似度
-            for i, feature in enumerate(self._get_feature(contours)):
-                moments, hu_moments = feature
-                semblance = ImageUtils.compare_hu_moments(self.__target_hu_moments, hu_moments)
-                if semblance is not False and (semblance < min_semblance or min_semblance == -1):
-                    min_semblance = semblance
-                    min_moments = moments
-                    min_index = i
-            self.__last_frame = frame
-            if min_moments:
-                old_position = self.__position
-                self.__position = ImageUtils.get_centroid(min_moments)
-                return old_position, self.__position, contours[min_index]
-            else:
-                return self.__position, self.__position, None
+            return self.__position, self.__position, ()
 
-    @staticmethod
-    def _get_feature(contours):
+        img = cv2.absdiff(frame, self.__last_frame)
+        self.__last_frame = frame
+        img = cv2.GaussianBlur(img, (5, 5), 2.5)
+        img = ImageUtils.morphology(img, cv2.MORPH_DILATE, 16)
+        _, img = ImageUtils.binary(img, threshold_type=cv2.THRESH_OTSU)
+        # 计算特征点
+        key_points, descriptors = ImageUtils.get_key_points(frame, img)
+        if len(key_points) * self.__match_points_ratio > self.get_key_points_count():
+            matches = ImageUtils.knn_match(self.__target_descriptors, descriptors)
+            if len(matches) > 0:
+                # 匹配到合适的特征点
+                points = ImageUtils.get_matches_points(key_points, matches)
+                src_key_points = ImageUtils.get_matches_points(self.__target_key_points, matches, 1)
+                # PROSAC去除错误点
+                _, mask = cv2.findHomography(src_key_points, points, cv2.RHO)
+                if mask is not None:
+                    points = points[mask.ravel() == 1]
+                    if len(points) > 0:
+                        # points = ImageUtils.scale_points(points, self.__target_ratio)
+                        points = ImageUtils.duplicate_points(points)
+                        if len(points) * self.__match_points_ratio > self.get_key_points_count():
+                            old_position = self.__position
+                            self.__position = ImageUtils.get_centroid(points)
+                            return old_position, self.__position, points
+        # 匹配到的特征点较少
+        return self.__position, self.__position, ()
+
+    def get_key_points_count(self):
         """
-        计算图像的矩和hu矩
-        :param list contours:
-        :return list:
+        获取关键点数
+        :return int:
         """
-        ret = []
-        # TODO: 并行计算
-        for contour in contours:
-            moments = cv2.moments(contour)
-            hu_moments = cv2.HuMoments(moments)
-            ret.append((moments, hu_moments))
-        return ret
+        return self.__target_key_points_len
