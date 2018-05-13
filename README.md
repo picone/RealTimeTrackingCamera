@@ -31,7 +31,8 @@
 1. 通过差分法获取运动边缘。
 2. 使用腐蚀扩大白点范围。
 3. 运动边缘作为mask搜索特征点，与用户选择图像进行匹配。
-4. 计算特征点的重心。
+4. 使用PROSAC匹配点降低误差。
+5. 计算特征点的重心。
 
 ### 依赖库
 
@@ -41,7 +42,7 @@ FE：[https://github.com/picone/RealTimeTrackingCamera_FE](https://github.com/pi
 
 ### DOCs
 
-[SURF译文](doc/surf.pdf)
+[SURF译文](docs/surf.pdf)
 
 ### Contributing
 
