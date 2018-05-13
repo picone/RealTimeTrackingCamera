@@ -39,9 +39,17 @@
 
 FE：[https://github.com/picone/RealTimeTrackingCamera_FE](https://github.com/picone/RealTimeTrackingCamera_FE)
 
+### DOCs
+
+[SURF译文](doc/surf.pdf)
+
 ### Contributing
 
 欢迎各种大佬提交宝贵代码OTZ__
+
+### TODO
+
+- 目标跟踪应该使用相关滤波和神经卷积网络
 
 ### LICENSE
 
