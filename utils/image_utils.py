@@ -196,3 +196,22 @@ class ImageUtils:
                 visited[x][y] = 1
                 ret.append((x, y))
         return ret
+
+    @staticmethod
+    def affinity_point(point, matrix):
+        if type(point) == Point:
+            x = (matrix[0][0] * point.x + matrix[0][1] * point.y + matrix[0][2]) \
+                / (matrix[2][0] * point.x + matrix[2][1] * point.y + matrix[2][2])
+            y = (matrix[1][0] * point.x + matrix[1][1] * point.y + matrix[1][2]) \
+                / (matrix[2][0] * point.x + matrix[2][1] * point.y + matrix[2][2])
+            return Point(x, y)
+        else:
+            x = (matrix[0][0] * point[0] + matrix[0][1] * point[1] + matrix[0][2]) \
+                / (matrix[2][0] * point[0] + matrix[2][1] * point[1] + matrix[2][2])
+            y = (matrix[1][0] * point[0] + matrix[1][1] * point[1] + matrix[1][2]) \
+                / (matrix[2][0] * point[0] + matrix[2][1] * point[1] + matrix[2][2])
+            return numpy.array([[int(x), int(y)]])
+
+    @staticmethod
+    def create_img(shape):
+        return numpy.zeros(shape, dtype=numpy.uint8)

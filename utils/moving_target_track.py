@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import cv2
+import numpy
 
 from models.Point import Point
 from utils.camera import Camera
@@ -10,7 +11,7 @@ class MovingTargetTrack:
     """
     模板跟踪
     """
-    __match_points_ratio = 70
+    __match_points_ratio = 100
 
     def __init__(self, target, mask):
         """
@@ -20,10 +21,20 @@ class MovingTargetTrack:
         self.__last_frame = None
         # self.__target_ratio, self.__target = ImageUtils.scale_image(target, 1080, 720)
         self.__target = cv2.cvtColor(target, cv2.COLOR_BGR2GRAY)
-        _, self.__mask = ImageUtils.binary(mask, threshold_type=cv2.THRESH_OTSU)
-        self.__target_key_points, self.__target_descriptors = ImageUtils.get_key_points(self.__target, self.__mask)
+        _, mask_binary = ImageUtils.binary(mask, threshold_type=cv2.THRESH_OTSU)
+        self.__target_key_points, self.__target_descriptors = ImageUtils.get_key_points(self.__target, mask_binary)
         self.__target_key_points_len = len(self.__target_key_points)
-        self.__position = Point()
+        # 查找mask重心
+        _, contours, _ = cv2.findContours(mask_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        self.__mask_contour = contours[0]
+        moments = cv2.moments(self.__mask_contour)
+        self.__position = Point(moments['m10'] / moments['m00'], moments['m01'] / moments['m00'])
+        # 计算颜色直方图
+        # target_mask = cv2.bitwise_and(target, mask)
+        # target_hsv = cv2.cvtColor(target_mask, cv2.COLOR_BGR2HSV)
+        # target_hist = cv2.calcHist(target_hsv, [0, 1], None, [50, 60], [0, 256, 0, 180])
+        # self.__target_hist = None
+        # cv2.normalize(target_hist, self.__target_hist)
         print("特征点数:%d" % self.__target_key_points_len)
 
     def track(self, frame):
@@ -52,16 +63,16 @@ class MovingTargetTrack:
                 points = ImageUtils.get_matches_points(key_points, matches)
                 src_key_points = ImageUtils.get_matches_points(self.__target_key_points, matches, 1)
                 # PROSAC去除错误点
-                _, mask = cv2.findHomography(src_key_points, points, cv2.RHO)
+                h, mask = cv2.findHomography(src_key_points, points, cv2.RHO)
                 if mask is not None:
                     points = points[mask.ravel() == 1]
                     if len(points) > 0:
                         # points = ImageUtils.scale_points(points, self.__target_ratio)
                         points = ImageUtils.duplicate_points(points)
-                        if len(points) * self.__match_points_ratio > self.get_key_points_count():
-                            old_position = self.__position
-                            self.__position = ImageUtils.get_centroid(points)
-                            return old_position, self.__position, points
+                        old_position = self.__position
+                        self.__position = ImageUtils.affinity_point(old_position, h)
+                        return old_position, self.__position, points
+
         # 匹配到的特征点较少
         return self.__position, self.__position, ()
 

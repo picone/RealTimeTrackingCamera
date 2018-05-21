@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
-import cv2
+import copy
 
 from controllers.base_controller import BaseController
 from message import request_pb2
@@ -43,6 +43,7 @@ class Track(BaseController):
                 response.position_x = new_position.x
                 response.position_y = new_position.y
                 response.points_count = len(points)
+                img = copy.deepcopy(img)  # 深复制,不然影响track内部
                 # 把轮廓绘制到帧上
                 if response.points_count > 0:
                     ImageUtils.draw_points(img, points, 6, (0, 0, 255))
